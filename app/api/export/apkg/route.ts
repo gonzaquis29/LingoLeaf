@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const zip: Buffer = await apkg.save()
 
-  return new NextResponse(zip, {
+  return new NextResponse(new Uint8Array(zip), {
     headers: {
       'Content-Type': 'application/octet-stream',
       'Content-Disposition': `attachment; filename="${(deckName || 'Lingoleaf').replace(/[^a-zA-Z0-9-_]/g, '_')}.apkg"`,

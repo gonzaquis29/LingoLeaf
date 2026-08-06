@@ -47,3 +47,9 @@ export function schedule(state: SrsState, grade: Grade): SrsResult {
 export function newCardState(): SrsState & { due_date: string; status: WordStatus } {
   return { ease_factor: 2.5, interval_days: 0, repetitions: 0, due_date: new Date().toISOString(), status: 'new' }
 }
+
+// Nivel de familiaridad 1-4 dentro de 'learning' (estilo LingQ), derivado de repetitions —
+// sin columna nueva, sin lógica de sincronización adicional.
+export function wordLevel(repetitions: number): 1 | 2 | 3 | 4 {
+  return Math.min(Math.max(repetitions, 1), 4) as 1 | 2 | 3 | 4
+}

@@ -1,26 +1,126 @@
 @import "tailwindcss";
 
+/* Tokens portados de LingoLeaf-vf.html — ver lib/theme.ts para los equivalentes en TS
+   (colores de estado, acentos por idioma) que no pueden ser CSS estático. */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #14181c;
+  --ink: #14181c;
+  --muted: #6b6e76;
+  --moss-soft: #f1f2f4;
+  --cream-card: #fafafb;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-figtree);
+  --font-jakarta: var(--font-jakarta);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-figtree), system-ui, sans-serif;
+}
+
+/* Retroalimentación táctil al hacer click — sin esto, cualquier botón se siente "muerto"
+   mientras se espera la respuesta real (red, base de datos). Una sola regla cubre todos los
+   <button> de la app; .lf-tap es para los <Link> que actúan como botón (ej. "Leer"), que no
+   son <button> y por eso no entran acá. */
+button:not(:disabled) {
+  transition: transform 0.1s ease-out;
+}
+button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.lf-tap {
+  transition: transform 0.1s ease-out;
+}
+.lf-tap:active {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled),
+  .lf-tap {
+    transition: none;
+  }
+  button:not(:disabled):active,
+  .lf-tap:active {
+    transform: none;
+  }
+}
+
+@keyframes lf-bubble-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.lf-word-bubble {
+  animation: lf-bubble-in 0.12s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lf-word-bubble {
+    animation: none;
+  }
+}
+
+/* Gesto visual de cierre (US9.2) — sin puntos ni moneda, solo un pequeño "asentamiento"
+   satisfactorio del ícono de la hoja al terminar una sesión de repaso. */
+@keyframes lf-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-8deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.12) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.lf-completion-icon {
+  animation: lf-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lf-completion-icon {
+    animation: none;
+  }
+}
+
+/* Esqueletos de carga — los muestra loading.tsx de inmediato al navegar ("instant loading
+   state", como recomienda Next.js). Un intento anterior de retrasarlos para navegaciones
+   rápidas terminaba mostrando una pantalla en blanco en su lugar — peor que el parpadeo. */
+@keyframes lf-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.lf-skeleton {
+  background: linear-gradient(90deg, #f1f2f4 25%, #e7e9ec 37%, #f1f2f4 63%);
+  background-size: 400px 100%;
+  animation: lf-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lf-skeleton {
+    animation: none;
+  }
 }
