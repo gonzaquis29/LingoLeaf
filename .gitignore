@@ -43,3 +43,6 @@ next-env.d.ts
 # AI assistant files
 CLAUDE.md
 AGENTS.md
+
+# superpowers brainstorming companion (mockups/session state, no need to version)
+.superpowers/
