@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { LANGUAGES, languageInfo } from '@/lib/languages'
 import { COLORS, CARD_RADIUS, pillButtonStyle, accentBase } from '@/lib/theme'
+import { TextCoverArt } from '@/components/Library/TextCoverArt'
 import { authInputStyle } from '@/components/Auth/authStyles'
 import type { Language, Level } from '@/types'
 
@@ -13,6 +14,7 @@ interface CatalogText {
   language: Language
   level: Level
   word_count: number
+  cover_url?: string | null
 }
 
 // AC US3.3: buscador + filtro de idioma sobre el catálogo curado, con acceso directo a leer.
@@ -29,7 +31,7 @@ export function CatalogSearch({ texts }: { texts: CatalogText[] }) {
   )
 
   return (
-    <div style={{ maxWidth: 720 }}>
+    <div>
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -37,7 +39,7 @@ export function CatalogSearch({ texts }: { texts: CatalogText[] }) {
         style={{ ...authInputStyle, maxWidth: 340 }}
       />
       <div className="mb-4 mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={() => setLangFilter('all')} style={pillButtonStyle(langFilter === 'all', COLORS.mossMid)}>
+        <button type="button" onClick={() => setLangFilter('all')} style={pillButtonStyle(langFilter === 'all', COLORS.ink)}>
           Todos
         </button>
         {LANGUAGES.map((l) => (
@@ -51,35 +53,38 @@ export function CatalogSearch({ texts }: { texts: CatalogText[] }) {
           </button>
         ))}
       </div>
-      <ul className="flex flex-col gap-2.5">
+      <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((t) => {
           const info = languageInfo(t.language)
           return (
             <li
               key={t.id}
-              className="flex items-center justify-between gap-4 p-3.5"
+              className="flex flex-col overflow-hidden"
               style={{ background: COLORS.creamCard, borderRadius: CARD_RADIUS, border: '1px solid rgba(20,24,28,0.08)' }}
             >
-              <div>
-                <p className="font-jakarta" style={{ fontWeight: 700, color: COLORS.ink, fontSize: 14.5 }}>
+              <div className="h-[110px] overflow-hidden">
+                <TextCoverArt textId={t.id} language={t.language} coverUrl={t.cover_url} title={t.title} />
+              </div>
+              <div className="flex flex-1 flex-col gap-1 p-4">
+                <p className="font-jakarta" style={{ fontWeight: 700, color: COLORS.ink, fontSize: 15 }}>
                   {t.title}
                 </p>
                 <p className="text-xs" style={{ color: COLORS.muted }}>
                   {info?.flag} {info?.label} · Nivel {t.level} · {t.word_count} palabras
                 </p>
+                <Link
+                  href={`/reader/${t.id}`}
+                  className="lf-tap font-jakarta mt-2.5 rounded-full py-2 text-center text-sm font-bold text-white"
+                  style={{ background: accentBase(t.language) }}
+                >
+                  Leer
+                </Link>
               </div>
-              <Link
-                href={`/reader/${t.id}`}
-                className="lf-tap font-jakarta shrink-0 rounded-full px-4 py-2 text-xs font-bold text-white"
-                style={{ background: accentBase(t.language) }}
-              >
-                Leer
-              </Link>
             </li>
           )
         })}
         {filtered.length === 0 && (
-          <p className="text-sm" style={{ color: COLORS.muted }}>
+          <p className="col-span-full text-sm" style={{ color: COLORS.muted }}>
             Sin resultados.
           </p>
         )}

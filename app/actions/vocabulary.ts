@@ -14,7 +14,7 @@ export async function saveWord(input: {
   context?: string
   language: Language
   textId?: string
-}): Promise<{ error?: string }> {
+}): Promise<{ error?: string; id?: string }> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -32,21 +32,25 @@ export async function saveWord(input: {
     .eq('language', input.language)
     .maybeSingle()
 
-  if (existing) return {}
+  if (existing) return { id: existing.id }
 
   const card = newCardState()
-  const { error } = await supabase.from('vocabulary').insert({
-    user_id: user.id,
-    word,
-    translation: input.translation.trim(),
-    context: input.context,
-    language: input.language,
-    text_id: input.textId,
-    ...card,
-  })
+  const { data: inserted, error } = await supabase
+    .from('vocabulary')
+    .insert({
+      user_id: user.id,
+      word,
+      translation: input.translation.trim(),
+      context: input.context,
+      language: input.language,
+      text_id: input.textId,
+      ...card,
+    })
+    .select('id')
+    .single()
 
   if (error) return { error: 'No se pudo guardar la palabra.' }
-  return {}
+  return { id: inserted.id }
 }
 
 // "Ya la sé" en la burbuja del Lector — salto directo a 'known' sin pasar por el ciclo de
@@ -58,7 +62,7 @@ export async function markWordKnown(input: {
   context?: string
   language: Language
   textId?: string
-}): Promise<{ error?: string }> {
+}): Promise<{ error?: string; id?: string }> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -87,20 +91,39 @@ export async function markWordKnown(input: {
   if (existing) {
     const { error } = await supabase.from('vocabulary').update(knownState).eq('id', existing.id)
     if (error) return { error: 'No se pudo actualizar.' }
-    return {}
+    return { id: existing.id }
   }
 
-  const { error } = await supabase.from('vocabulary').insert({
-    user_id: user.id,
-    word,
-    translation: input.translation.trim(),
-    context: input.context,
-    language: input.language,
-    text_id: input.textId,
-    ...knownState,
-  })
+  const { data: inserted, error } = await supabase
+    .from('vocabulary')
+    .insert({
+      user_id: user.id,
+      word,
+      translation: input.translation.trim(),
+      context: input.context,
+      language: input.language,
+      text_id: input.textId,
+      ...knownState,
+    })
+    .select('id')
+    .single()
 
   if (error) return { error: 'No se pudo guardar la palabra.' }
+  return { id: inserted.id }
+}
+
+// Deshacer: el usuario puede quitar una palabra de su repaso en cualquier momento, desde la
+// burbuja del Lector o desde Vocabulario — cumple con la heurística de Nielsen de control y
+// libertad del usuario (ninguna acción de "agregar" queda sin forma de revertirse).
+export async function removeWord(vocabId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { error } = await supabase.from('vocabulary').delete().eq('id', vocabId).eq('user_id', user.id)
+  if (error) return { error: 'No se pudo quitar la palabra.' }
   return {}
 }
 

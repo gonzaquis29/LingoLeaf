@@ -37,6 +37,12 @@ export function PasteTextForm({ defaultLanguage }: { defaultLanguage: Language }
         rows={10}
         style={{ ...authInputStyle, marginBottom: 0, resize: 'vertical', fontFamily: 'inherit' }}
       />
+      <div>
+        <label className="mb-1 block text-xs font-semibold" style={{ color: '#6B6E76' }}>
+          Portada (opcional) — si no subís una, generamos una automática
+        </label>
+        <input type="file" name="cover" accept="image/*" style={{ ...authInputStyle, marginBottom: 0, padding: '8px 10px' }} />
+      </div>
 
       {state?.error && (
         <p role="alert" className="text-sm" style={{ color: 'oklch(58% 0.20 25)' }}>

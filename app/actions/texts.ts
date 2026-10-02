@@ -37,6 +37,16 @@ export async function addText(_prev: AddTextState, formData: FormData): Promise<
 
   const level = (levelInput === 'auto' ? detectLevel(content, wordCount) : levelInput) as Level
 
+  let coverUrl: string | undefined
+  const cover = formData.get('cover')
+  if (cover instanceof File && cover.size > 0) {
+    const path = `${user.id}/${crypto.randomUUID()}-${cover.name}`
+    const { error: uploadError } = await supabase.storage.from('text-covers').upload(path, cover)
+    if (!uploadError) {
+      coverUrl = supabase.storage.from('text-covers').getPublicUrl(path).data.publicUrl
+    }
+  }
+
   const { error } = await supabase.from('texts').insert({
     title,
     content,
@@ -47,6 +57,7 @@ export async function addText(_prev: AddTextState, formData: FormData): Promise<
     owner_id: user.id,
     is_public: false,
     source_type: 'user',
+    cover_url: coverUrl,
   })
 
   if (error) return { error: 'No se pudo guardar el texto.' }

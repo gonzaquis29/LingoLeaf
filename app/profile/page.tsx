@@ -1,25 +1,27 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getUserId } from '@/lib/supabase/auth'
 import { Header } from '@/components/Layout/Header'
 import { ProfileLanguages } from '@/components/Profile/ProfileLanguages'
+import { PageBanner } from '@/components/Layout/LanguageBanner'
+import { accentStrong } from '@/lib/theme'
 import { getDueCount } from '@/lib/dueCount'
-import { COLORS, CARD_RADIUS } from '@/lib/theme'
+import { t, uiLangFromNative } from '@/lib/i18n/t'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const userId = await getUserId(supabase)
+  if (!userId) redirect('/login')
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('native_language, learning_languages, active_lang, onboarding_completed, streak_days')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single()
   if (!profile?.onboarding_completed || !profile.active_lang) redirect('/onboarding')
+  const uiLang = uiLangFromNative(profile.native_language)
 
-  const dueCount = await getDueCount(supabase, user.id, profile.active_lang)
+  const dueCount = await getDueCount(supabase, userId, profile.active_lang)
 
   return (
     <>
@@ -29,27 +31,21 @@ export default async function ProfilePage() {
         streakDays={profile.streak_days}
         dueCount={dueCount}
       />
-      <main className="mx-auto w-full max-w-[640px] flex-1 px-8 pb-20 pt-8">
-        <h1 className="font-jakarta mb-6" style={{ fontSize: 26, fontWeight: 800, color: COLORS.ink }}>
-          Perfil
-        </h1>
-
-        <div
-          className="mb-8 flex items-center gap-4 p-5"
-          style={{ background: 'oklch(92% 0.05 40)', borderRadius: CARD_RADIUS }}
-        >
-          <span className="text-3xl">🔥</span>
-          <div>
-            <p className="font-jakarta" style={{ fontSize: 22, fontWeight: 800, color: 'oklch(42% 0.14 40)' }}>
-              {profile.streak_days} día{profile.streak_days === 1 ? '' : 's'}
-            </p>
-            <p className="text-sm" style={{ color: 'oklch(42% 0.14 40)' }}>
-              de racha usando Lingoleaf
-            </p>
-          </div>
+      <main className="mx-auto w-full max-w-[1180px] flex-1 pb-20">
+        <PageBanner language={profile.active_lang} title={t('nav_profile', uiLang)}>
+          <p className="mt-3 flex items-center gap-2 text-[15px] font-semibold" style={{ color: accentStrong(profile.active_lang) }}>
+            <span className="text-xl">🔥</span>
+            {profile.streak_days}{' '}
+            {profile.streak_days === 1 ? t('profile_streak_suffix_singular', uiLang) : t('profile_streak_suffix', uiLang)}
+          </p>
+        </PageBanner>
+        <div className="mx-auto w-full max-w-[640px] px-8">
+          <ProfileLanguages
+            nativeLanguage={profile.native_language}
+            learningLanguages={profile.learning_languages}
+            activeLang={profile.active_lang}
+          />
         </div>
-
-        <ProfileLanguages nativeLanguage={profile.native_language} learningLanguages={profile.learning_languages} />
       </main>
     </>
   )

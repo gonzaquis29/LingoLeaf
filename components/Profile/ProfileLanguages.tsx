@@ -6,22 +6,26 @@ import { LANGUAGES } from '@/lib/languages'
 import { LangPill } from '@/components/Shared/LangPill'
 import { authButtonStyle } from '@/components/Auth/authStyles'
 import { accentBase, COLORS } from '@/lib/theme'
+import { useT } from '@/components/i18n/I18nProvider'
 import type { Language } from '@/types'
 
 // AC US7.3: cambiar idioma nativo o agregar/quitar idiomas aprendidos.
 export function ProfileLanguages({
   nativeLanguage,
   learningLanguages,
+  activeLang,
 }: {
   nativeLanguage: Language
   learningLanguages: Language[]
+  activeLang: Language
 }) {
+  const t = useT()
   const [state, formAction, pending] = useActionState(updateLanguages, undefined)
 
   return (
     <form action={formAction}>
       <h2 className="font-jakarta mb-3" style={{ fontSize: 14, fontWeight: 800, color: COLORS.ink }}>
-        Idioma nativo
+        {t('profile_native_language')}
       </h2>
       <div className="mb-6 flex flex-wrap gap-2.5">
         {LANGUAGES.map((lang) => (
@@ -38,7 +42,7 @@ export function ProfileLanguages({
       </div>
 
       <h2 className="font-jakarta mb-3" style={{ fontSize: 14, fontWeight: 800, color: COLORS.ink }}>
-        Idiomas que estás aprendiendo
+        {t('profile_learning_languages')}
       </h2>
       <div className="mb-6 flex flex-wrap gap-2.5">
         {LANGUAGES.map((lang) => (
@@ -64,9 +68,9 @@ export function ProfileLanguages({
         type="submit"
         disabled={pending}
         className="font-jakarta"
-        style={{ ...authButtonStyle(accentBase(nativeLanguage)), width: 'auto', padding: '12px 28px' }}
+        style={{ ...authButtonStyle(accentBase(activeLang)), width: 'auto', padding: '12px 28px' }}
       >
-        {pending ? 'Guardando…' : 'Guardar cambios'}
+        {pending ? t('common_saving') : t('common_save_changes')}
       </button>
     </form>
   )

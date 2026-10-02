@@ -4,6 +4,7 @@ import { useState, useTransition, type FormEvent } from 'react'
 import { saveWord } from '@/app/actions/vocabulary'
 import { authInputStyle, authButtonStyle } from '@/components/Auth/authStyles'
 import { COLORS, CARD_RADIUS, accentBase } from '@/lib/theme'
+import { useT } from '@/components/i18n/I18nProvider'
 import type { Language, WordStatus } from '@/types'
 
 interface SavedRow {
@@ -29,6 +30,7 @@ export function AddWordModal({
   onClose: () => void
   onSaved: (row: SavedRow) => void
 }) {
+  const t = useT()
   const [word, setWord] = useState('')
   const [translation, setTranslation] = useState('')
   const [context, setContext] = useState('')
@@ -71,20 +73,20 @@ export function AddWordModal({
         style={{ maxWidth: 380, background: '#fff', borderRadius: CARD_RADIUS, padding: '28px 24px' }}
       >
         <h2 className="font-jakarta mb-4" style={{ fontSize: 18, fontWeight: 800, color: COLORS.ink }}>
-          Agregar una palabra
+          {t('vocab_add_word')}
         </h2>
-        <input value={word} onChange={(e) => setWord(e.target.value)} placeholder="Palabra" required style={authInputStyle} />
+        <input value={word} onChange={(e) => setWord(e.target.value)} placeholder={t('vocab_word')} required style={authInputStyle} />
         <input
           value={translation}
           onChange={(e) => setTranslation(e.target.value)}
-          placeholder="Traducción"
+          placeholder={t('vocab_translation')}
           required
           style={authInputStyle}
         />
         <input
           value={context}
           onChange={(e) => setContext(e.target.value)}
-          placeholder="Contexto (opcional)"
+          placeholder={t('vocab_context')}
           style={{ ...authInputStyle, marginBottom: 8 }}
         />
         {error && (
@@ -94,7 +96,7 @@ export function AddWordModal({
         )}
         <div className="mt-3 flex items-center gap-4">
           <button type="button" onClick={onClose} className="text-sm underline" style={{ color: COLORS.muted }}>
-            Cancelar
+            {t('vocab_cancel')}
           </button>
           <button
             type="submit"
@@ -102,7 +104,7 @@ export function AddWordModal({
             className="font-jakarta"
             style={{ ...authButtonStyle(accentBase(language)), width: 'auto', padding: '10px 22px', marginTop: 0 }}
           >
-            {isPending ? 'Guardando…' : 'Guardar'}
+            {isPending ? t('common_saving') : t('vocab_save')}
           </button>
         </div>
       </form>

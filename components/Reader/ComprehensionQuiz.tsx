@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { COLORS, CARD_RADIUS, accentBase } from '@/lib/theme'
+import { useT } from '@/components/i18n/I18nProvider'
 import type { Language } from '@/types'
 
 interface Question {
@@ -15,6 +16,7 @@ interface Question {
 // que está anclado a una oración específica. Sin puntos ni moneda (Épica 9): el resultado es
 // informativo ("cuánto entendiste"), no una recompensa que acumular.
 export function ComprehensionQuiz({ questions, language }: { questions: Question[]; language: Language }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
@@ -39,7 +41,7 @@ export function ComprehensionQuiz({ questions, language }: { questions: Question
           className="font-jakarta rounded-full px-6 py-3 text-sm font-bold text-white"
           style={{ background: accent }}
         >
-          Hacer quiz de comprensión →
+          {t('quiz_start_cta')}
         </button>
       </div>
     )
@@ -52,15 +54,13 @@ export function ComprehensionQuiz({ questions, language }: { questions: Question
         style={{ maxWidth: 480, background: COLORS.creamCard, borderRadius: CARD_RADIUS, padding: '32px 28px', border: '1px solid rgba(20,24,28,0.08)' }}
       >
         <h3 className="font-jakarta mb-2" style={{ fontSize: 18, fontWeight: 800, color: COLORS.ink }}>
-          {correctCount}/{questions.length} correctas
+          {correctCount}/{questions.length} {t('quiz_correct_suffix')}
         </h3>
         <p className="text-sm" style={{ color: COLORS.muted }}>
-          {correctCount === questions.length
-            ? '¡Entendiste todo el texto!'
-            : 'Repasa el texto de nuevo si quieres mejorar tu resultado.'}
+          {correctCount === questions.length ? t('quiz_all_correct') : t('quiz_retry_hint')}
         </p>
         <button type="button" onClick={reset} className="mt-4 text-sm underline" style={{ color: COLORS.muted }}>
-          Cerrar
+          {t('quiz_close')}
         </button>
       </div>
     )
@@ -86,7 +86,7 @@ export function ComprehensionQuiz({ questions, language }: { questions: Question
       style={{ maxWidth: 480, background: COLORS.creamCard, borderRadius: CARD_RADIUS, padding: 28, border: '1px solid rgba(20,24,28,0.08)' }}
     >
       <p className="mb-3 text-xs font-semibold" style={{ color: COLORS.muted }}>
-        Pregunta {index + 1} de {questions.length}
+        {t('quiz_question_prefix')} {index + 1} {t('quiz_question_of')} {questions.length}
       </p>
       <p className="font-jakarta mb-4" style={{ fontSize: 16, fontWeight: 700, color: COLORS.ink }}>
         {current.question}
@@ -120,7 +120,7 @@ export function ComprehensionQuiz({ questions, language }: { questions: Question
           className="font-jakarta mt-4 rounded-full px-5 py-2.5 text-sm font-bold text-white"
           style={{ background: accent }}
         >
-          {isLast ? 'Ver resultado' : 'Siguiente'}
+          {isLast ? t('quiz_see_result') : t('quiz_next')}
         </button>
       )}
     </div>

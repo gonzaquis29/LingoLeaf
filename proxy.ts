@@ -30,5 +30,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  // api/translate no usa la sesión (cliente admin + caché pública), así que no paga getUser().
+  matcher: ['/((?!_next/static|_next/image|api/translate|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }

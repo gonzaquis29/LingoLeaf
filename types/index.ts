@@ -16,6 +16,7 @@ export interface Text {
   owner_id?: string
   is_public: boolean
   source_type: SourceType
+  cover_url?: string | null
   created_at: string
 }
 

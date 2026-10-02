@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { COLORS, CARD_RADIUS } from '@/lib/theme'
+import { useT } from '@/components/i18n/I18nProvider'
 import type { GrammarPoint } from '@/types'
 
 function GrammarQuiz({ point }: { point: GrammarPoint }) {
+  const t = useT()
   const [selected, setSelected] = useState<number | null>(null)
 
   return (
@@ -37,7 +39,7 @@ function GrammarQuiz({ point }: { point: GrammarPoint }) {
           className="mt-2 text-xs font-semibold"
           style={{ color: selected === point.quiz_correct_index ? COLORS.stateKnown : COLORS.stateNew }}
         >
-          {selected === point.quiz_correct_index ? '¡Correcto!' : 'No es esa — intenta de nuevo.'}
+          {selected === point.quiz_correct_index ? t('grammar_correct') : t('grammar_incorrect')}
         </p>
       )}
     </div>
@@ -46,6 +48,7 @@ function GrammarQuiz({ point }: { point: GrammarPoint }) {
 
 // AC US12.1: vive en un panel lateral fijo, separado de la burbuja de traducción de palabra.
 export function GrammarPanel({ points }: { points: GrammarPoint[] }) {
+  const t = useT()
   const [openId, setOpenId] = useState<string | null>(points[0]?.id ?? null)
 
   return (
@@ -54,7 +57,7 @@ export function GrammarPanel({ points }: { points: GrammarPoint[] }) {
         className="font-jakarta mb-3"
         style={{ fontSize: 12.5, fontWeight: 800, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}
       >
-        Gramática en este texto
+        {t('reader_grammar_title')}
       </h2>
       <div className="flex flex-col gap-3">
         {points.map((point) => {

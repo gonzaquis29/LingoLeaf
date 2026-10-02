@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { reviewWord } from '@/app/actions/vocabulary'
 import { schedule } from '@/lib/srs'
 import { COLORS, CARD_RADIUS, accentBase } from '@/lib/theme'
+import { useT } from '@/components/i18n/I18nProvider'
+import type { DictKey } from '@/lib/i18n/dict'
 import type { Grade, Language } from '@/types'
 
 interface Card {
@@ -17,19 +19,19 @@ interface Card {
   repetitions: number
 }
 
-const GRADES: { grade: Grade; label: string; color: string }[] = [
-  { grade: 'again', label: 'Otra vez', color: COLORS.stateNew },
-  { grade: 'hard', label: 'Difícil', color: 'oklch(60% 0.15 50)' },
-  { grade: 'good', label: 'Bien', color: COLORS.stateKnown },
-  { grade: 'easy', label: 'Fácil', color: COLORS.mossMid },
+const GRADES: { grade: Grade; labelKey: DictKey; color: string }[] = [
+  { grade: 'again', labelKey: 'grade_again', color: COLORS.stateNew },
+  { grade: 'hard', labelKey: 'grade_hard', color: 'oklch(60% 0.15 50)' },
+  { grade: 'good', labelKey: 'grade_good', color: COLORS.stateKnown },
+  { grade: 'easy', labelKey: 'grade_easy', color: COLORS.mossMid },
 ]
 
-function formatInterval(days: number): string {
-  if (days <= 0) return 'hoy'
-  if (days === 1) return 'mañana'
+function formatInterval(days: number, t: (key: DictKey) => string): string {
+  if (days <= 0) return t('time_today')
+  if (days === 1) return t('time_tomorrow')
   if (days < 30) return `${days} d`
   const months = Math.round(days / 30)
-  return months === 1 ? '1 mes' : `${months} meses`
+  return months === 1 ? t('time_month') : `${months} ${t('time_months')}`
 }
 
 function blankContext(context: string, word: string): string {
@@ -41,6 +43,7 @@ function blankContext(context: string, word: string): string {
 // AC US6.2/US6.3: el frente muestra la oración con la palabra oculta (estilo Anki), y el
 // intervalo resultante de cada botón se ve ANTES de elegir — nada de memorizar el algoritmo.
 export function ReviewSession({ cards, language }: { cards: Card[]; language: Language }) {
+  const t = useT()
   const [queue] = useState(cards)
   const [index, setIndex] = useState(0)
   const [revealed, setRevealed] = useState(false)
@@ -66,20 +69,35 @@ export function ReviewSession({ cards, language }: { cards: Card[]; language: La
             <path d="M16 9V24M16 15L11 11M16 21L21 17" stroke="#FFFFFF" strokeWidth="1.4" strokeLinecap="round" />
           </svg>
         )}
-        <h1 className="font-jakarta mb-2" style={{ fontSize: 22, fontWeight: 800, color: COLORS.ink }}>
-          {reviewedCount > 0 ? '¡Repaso del día terminado!' : 'No tienes tarjetas pendientes'}
-        </h1>
+        {reviewedCount > 0 && (
+          <p
+            className="font-jakarta mb-1 text-[11px] font-bold uppercase"
+            style={{ letterSpacing: '0.08em', color: accent }}
+          >
+            {t('review_finished_eyebrow')}
+          </p>
+        )}
+        {reviewedCount > 0 ? (
+          <p
+            className="font-jakarta mb-2"
+            style={{ fontSize: 52, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, color: accent }}
+          >
+            {reviewedCount}
+          </p>
+        ) : (
+          <h2 className="font-jakarta mb-2" style={{ fontSize: 22, fontWeight: 800, color: COLORS.ink }}>
+            {t('review_none_pending')}
+          </h2>
+        )}
         <p className="mb-6 text-sm" style={{ color: COLORS.muted }}>
-          {reviewedCount > 0
-            ? `Repasaste ${reviewedCount} palabra${reviewedCount === 1 ? '' : 's'}.`
-            : 'Vuelve más tarde o agrega palabras nuevas desde Vocabulario.'}
+          {reviewedCount > 0 ? t('review_words_reviewed') : t('review_none_pending_hint')}
         </p>
         <Link
           href="/library"
           className="lf-tap font-jakarta rounded-full px-6 py-3 text-sm font-bold text-white"
           style={{ background: accent }}
         >
-          Volver a la Biblioteca
+          {t('review_back_to_library')}
         </Link>
       </div>
     )
@@ -117,7 +135,7 @@ export function ReviewSession({ cards, language }: { cards: Card[]; language: La
           </p>
         ) : (
           <p className="text-lg" style={{ color: COLORS.ink }}>
-            {revealed ? current.word : '¿Qué significa esta palabra?'}
+            {revealed ? current.word : t('review_question')}
           </p>
         )}
 
@@ -139,11 +157,11 @@ export function ReviewSession({ cards, language }: { cards: Card[]; language: La
             className="font-jakarta mt-6 rounded-full px-6 py-3 text-sm font-bold text-white"
             style={{ background: accent }}
           >
-            Mostrar respuesta
+            {t('review_show_answer')}
           </button>
         ) : (
           <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            {GRADES.map(({ grade, label, color }) => {
+            {GRADES.map(({ grade, labelKey, color }) => {
               const preview = schedule(
                 { ease_factor: current.ease_factor, interval_days: current.interval_days, repetitions: current.repetitions },
                 grade
@@ -157,9 +175,9 @@ export function ReviewSession({ cards, language }: { cards: Card[]; language: La
                   className="font-jakarta rounded-xl px-2 py-3 text-sm font-bold text-white disabled:opacity-60"
                   style={{ background: color }}
                 >
-                  {label}
-                  <span className="mt-0.5 block text-[11px] font-normal opacity-90">
-                    {formatInterval(preview.interval_days)}
+                  {t(labelKey)}
+                  <span className="mt-1 block text-[15px] font-extrabold opacity-95">
+                    {formatInterval(preview.interval_days, t)}
                   </span>
                 </button>
               )
@@ -170,7 +188,7 @@ export function ReviewSession({ cards, language }: { cards: Card[]; language: La
 
       <div className="mt-6 text-center">
         <Link href="/library" className="text-sm underline" style={{ color: COLORS.muted }}>
-          Salir del repaso
+          {t('review_exit')}
         </Link>
       </div>
     </div>

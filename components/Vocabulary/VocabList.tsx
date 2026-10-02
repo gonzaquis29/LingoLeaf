@@ -3,8 +3,10 @@
 import { useMemo, useState } from 'react'
 import { wordLevel } from '@/lib/srs'
 import { downloadCsv, downloadApkg } from '@/lib/export'
-import { COLORS, CARD_RADIUS, pillButtonStyle } from '@/lib/theme'
+import { COLORS, CARD_RADIUS, accentBase, pillButtonStyle } from '@/lib/theme'
 import { AddWordModal } from '@/components/Vocabulary/AddWordModal'
+import { useT } from '@/components/i18n/I18nProvider'
+import type { DictKey } from '@/lib/i18n/dict'
 import type { Language, WordStatus } from '@/types'
 
 interface VocabRow {
@@ -19,7 +21,11 @@ interface VocabRow {
   created_at: string
 }
 
-const STATUS_LABEL: Record<WordStatus, string> = { new: 'Nueva', learning: 'Aprendiendo', known: 'Conocida' }
+const STATUS_LABEL_KEY: Record<WordStatus, DictKey> = {
+  new: 'vocab_status_new',
+  learning: 'vocab_status_learning',
+  known: 'vocab_status_known',
+}
 const STATUS_COLOR: Record<WordStatus, string> = {
   new: COLORS.stateNew,
   learning: COLORS.stateLearning,
@@ -29,16 +35,19 @@ const STATUS_COLOR: Record<WordStatus, string> = {
 // AC US5.1/US5.2: lista completa con traducción/contexto, filtro por estado (el idioma ya viene
 // filtrado por el idioma activo — US1.7), y nivel 1-4 visible en las palabras "aprendiendo".
 export function VocabList({ words, language }: { words: VocabRow[]; language: Language }) {
+  const t = useT()
   const [filter, setFilter] = useState<'all' | WordStatus>('all')
   const [rows, setRows] = useState(words)
   const [modalOpen, setModalOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
 
   const filtered = useMemo(() => (filter === 'all' ? rows : rows.filter((r) => r.status === filter)), [rows, filter])
 
   // AC US8.1/US8.2: exporta lo que está filtrado ahora mismo (idioma ya viene fijado por el
   // idioma activo — US1.7 — y el estado por el filtro de esta pantalla).
   function handleExportCsv() {
+    setExportOpen(false)
     downloadCsv(filtered, `vocabulario-${language}.csv`)
   }
 
@@ -46,6 +55,7 @@ export function VocabList({ words, language }: { words: VocabRow[]; language: La
     setExporting(true)
     try {
       await downloadApkg(filtered, `Lingoleaf-${language}`)
+      setExportOpen(false)
     } catch {
       // el fetch en downloadApkg ya loguea el fallo de red; no hay más que mostrar acá sin un toast global
     } finally {
@@ -62,20 +72,24 @@ export function VocabList({ words, language }: { words: VocabRow[]; language: La
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              style={pillButtonStyle(filter === f, f === 'all' ? COLORS.mossMid : STATUS_COLOR[f])}
+              style={pillButtonStyle(filter === f, f === 'all' ? accentBase(language) : STATUS_COLOR[f])}
             >
-              {f === 'all' ? 'Todas' : STATUS_LABEL[f]}
+              {f === 'all' ? t('vocab_filter_all') : t(STATUS_LABEL_KEY[f])}
             </button>
           ))}
         </div>
 
-        <details className="relative">
-          <summary
-            className="cursor-pointer list-none rounded-full px-4 py-2 text-xs font-bold"
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setExportOpen((o) => !o)}
+            aria-expanded={exportOpen}
+            className="cursor-pointer rounded-full px-4 py-2 text-xs font-bold"
             style={{ border: '1px solid rgba(20,24,28,0.14)', color: COLORS.ink }}
           >
-            Exportar
-          </summary>
+            {t('vocab_export')}
+          </button>
+          {exportOpen && (
           <div
             className="absolute right-0 top-[38px] z-30 w-[190px] rounded-2xl p-2"
             style={{ background: '#fff', boxShadow: '0 12px 30px rgba(20,24,28,0.18)' }}
@@ -96,15 +110,16 @@ export function VocabList({ words, language }: { words: VocabRow[]; language: La
               className="block w-full rounded-lg px-3 py-2.5 text-left text-sm disabled:opacity-50"
               style={{ color: COLORS.ink }}
             >
-              {exporting ? 'Generando…' : 'Mazo de Anki (.apkg)'}
+              {exporting ? t('vocab_generating') : t('vocab_export_anki')}
             </button>
           </div>
-        </details>
+          )}
+        </div>
       </div>
 
       {filtered.length === 0 ? (
         <p className="text-sm" style={{ color: COLORS.muted }}>
-          {rows.length === 0 ? 'Todavía no guardaste ninguna palabra en este idioma.' : 'Nada en este filtro.'}
+          {rows.length === 0 ? t('vocab_empty_language') : t('vocab_empty_filter')}
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -129,11 +144,11 @@ export function VocabList({ words, language }: { words: VocabRow[]; language: La
               </div>
               <div className="shrink-0 text-right">
                 <span className="text-xs font-semibold" style={{ color: STATUS_COLOR[row.status] }}>
-                  {STATUS_LABEL[row.status]}
-                  {row.status === 'learning' ? ` · Nivel ${wordLevel(row.repetitions)}/4` : ''}
+                  {t(STATUS_LABEL_KEY[row.status])}
+                  {row.status === 'learning' ? ` · ${t('vocab_level_short')} ${wordLevel(row.repetitions)}/4` : ''}
                 </span>
                 <p className="mt-0.5 text-[11px]" style={{ color: COLORS.muted }}>
-                  vence {new Date(row.due_date).toLocaleDateString('es')}
+                  {t('vocab_due')} {new Date(row.due_date).toLocaleDateString()}
                 </p>
               </div>
             </li>
@@ -145,8 +160,8 @@ export function VocabList({ words, language }: { words: VocabRow[]; language: La
         type="button"
         onClick={() => setModalOpen(true)}
         className="fixed bottom-8 right-8 flex h-14 w-14 items-center justify-center rounded-full text-2xl text-white"
-        style={{ background: COLORS.mossMid, boxShadow: '0 12px 30px rgba(20,24,28,0.25)' }}
-        aria-label="Agregar palabra"
+        style={{ background: accentBase(language), boxShadow: '0 12px 30px rgba(20,24,28,0.25)' }}
+        aria-label={t('vocab_add_aria')}
       >
         +
       </button>

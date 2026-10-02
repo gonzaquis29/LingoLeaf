@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree, Plus_Jakarta_Sans } from "next/font/google";
 import { RegisterServiceWorker } from "@/components/RegisterServiceWorker";
+import { I18nProvider } from "@/components/i18n/I18nProvider";
+import { uiLangFromNative } from "@/lib/i18n/t";
+import { createClient } from "@/lib/supabase/server";
+import { getUserId } from "@/lib/supabase/auth";
 import "./globals.css";
 
 const figtree = Figtree({
@@ -23,18 +27,30 @@ export const viewport: Viewport = {
   themeColor: "#14181C",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  let uiLang: 'es' | 'en' = 'es';
+  if (userId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('native_language')
+      .eq('id', userId)
+      .single();
+    uiLang = uiLangFromNative(profile?.native_language);
+  }
+
   return (
     <html
-      lang="es"
+      lang={uiLang}
       className={`${figtree.variable} ${plusJakartaSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {children}
+        <I18nProvider uiLang={uiLang}>{children}</I18nProvider>
         <RegisterServiceWorker />
       </body>
     </html>

@@ -1,3 +1,4 @@
+import { after } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Language } from '@/types'
 
@@ -30,12 +31,15 @@ export async function translateWord(
   const translation: string = data.responseData?.translatedText ?? ''
 
   if (translation) {
-    await supabase
-      .from('translations_cache')
-      .upsert(
-        { word: key, source_lang: sourceLang, target_lang: targetLang, translation },
-        { onConflict: 'word,source_lang,target_lang' }
-      )
+    // La escritura al caché no bloquea la respuesta: el usuario ya tiene su traducción.
+    after(async () => {
+      await supabase
+        .from('translations_cache')
+        .upsert(
+          { word: key, source_lang: sourceLang, target_lang: targetLang, translation },
+          { onConflict: 'word,source_lang,target_lang' }
+        )
+    })
   }
 
   return translation

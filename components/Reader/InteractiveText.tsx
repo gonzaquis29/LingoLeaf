@@ -1,15 +1,17 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { saveWord, markWordKnown } from '@/app/actions/vocabulary'
+import { saveWord, markWordKnown, removeWord } from '@/app/actions/vocabulary'
 import { speak, speechSupported } from '@/lib/speech'
 import { wordLevel } from '@/lib/srs'
-import { COLORS, accentBase, accentSoft, learningShade } from '@/lib/theme'
+import { COLORS, accentBase, accentSoft, learningHighlight } from '@/lib/theme'
 import { WordBubble } from '@/components/Reader/WordBubble'
+import { useT } from '@/components/i18n/I18nProvider'
 import type { Token } from '@/lib/tokenize'
 import type { Language, WordStatus } from '@/types'
 
 interface VocabEntry {
+  id: string
   translation: string
   status: WordStatus
   repetitions: number
@@ -36,6 +38,7 @@ export function InteractiveText({
   textId: string
   initialVocab: Record<string, VocabEntry>
 }) {
+  const t = useT()
   const [vocab, setVocab] = useState(initialVocab)
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [translations, setTranslations] = useState<Record<string, string>>({})
@@ -116,14 +119,15 @@ export function InteractiveText({
     if (!translation) return
 
     startTransition(async () => {
-      await saveWord({
+      const result = await saveWord({
         word: token.text,
         translation,
         context: sentences[token.sentenceIndex],
         language,
         textId,
       })
-      setVocab((v) => ({ ...v, [lower]: { translation, status: 'new', repetitions: 0 } }))
+      if (!result.id) return
+      setVocab((v) => ({ ...v, [lower]: { id: result.id!, translation, status: 'new', repetitions: 0 } }))
     })
   }
 
@@ -133,53 +137,96 @@ export function InteractiveText({
     if (!translation) return
 
     startTransition(async () => {
-      await markWordKnown({
+      const result = await markWordKnown({
         word: token.text,
         translation,
         context: sentences[token.sentenceIndex],
         language,
         textId,
       })
-      setVocab((v) => ({ ...v, [lower]: { translation, status: 'known', repetitions: 4 } }))
+      if (!result.id) return
+      setVocab((v) => ({ ...v, [lower]: { id: result.id!, translation, status: 'known', repetitions: 4 } }))
+    })
+  }
+
+  function handleRemove(token: Token, key: string) {
+    const lower = token.text.toLowerCase()
+    const entry = vocab[lower]
+    if (!entry) return
+
+    startTransition(async () => {
+      await removeWord(entry.id)
+      setVocab((v) => {
+        const next = { ...v }
+        delete next[lower]
+        return next
+      })
+      setSessionWords((s) => s.filter((w) => w.key !== key))
     })
   }
 
   return (
     <div>
       {/* AC del aprendizaje "el Lector no puede sentirse vacío": banner con progreso siempre visible. */}
-      <div
-        className="mb-3.5 flex flex-wrap items-center gap-3.5 rounded-2xl px-5 py-3.5"
-        style={{ background: accent }}
-      >
-        <span
-          className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full text-sm text-white"
-          style={{ background: accentStrong }}
-        >
-          ☝
-        </span>
-        <span className="flex-1 text-[13.5px]" style={{ color: '#3A3D42' }}>
-          Toca cualquier palabra subrayada para ver su traducción y añadirla a tu repaso.
-        </span>
-        <div className="flex flex-wrap gap-3.5">
-          <span className="text-[13px] font-semibold" style={{ color: COLORS.stateNew }}>
-            ● {counts.newCount} nuevas
+      <div className="mb-3.5 overflow-hidden rounded-2xl" style={{ background: accent }}>
+        <div className="flex items-center gap-3.5 px-5 py-3">
+          <span
+            className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-xs text-white"
+            style={{ background: accentStrong }}
+          >
+            ☝
           </span>
-          <span className="text-[13px] font-semibold" style={{ color: COLORS.stateLearning }}>
-            ● {counts.learningCount} aprendiendo
+          <span className="text-[13px]" style={{ color: '#3A3D42' }}>
+            {t('reader_hint')}
           </span>
-          <span className="text-[13px] font-semibold" style={{ color: COLORS.stateKnown }}>
-            ● {counts.knownCount} conocidas
+        </div>
+        <div className="grid grid-cols-3" style={{ background: 'rgba(255,255,255,0.55)' }}>
+          {[
+            { label: t('reader_stat_new'), value: counts.newCount, color: COLORS.stateNew },
+            { label: t('reader_stat_learning'), value: counts.learningCount, color: COLORS.stateLearning },
+            { label: t('reader_stat_known'), value: counts.knownCount, color: COLORS.stateKnown },
+          ].map((stat) => (
+            <div key={stat.label} className="px-5 py-3 text-center">
+              <p
+                className="font-jakarta"
+                style={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: stat.color }}
+              >
+                {stat.value}
+              </p>
+              <p
+                className="mt-1 text-[10.5px] font-bold uppercase"
+                style={{ letterSpacing: '0.06em', color: stat.color, opacity: 0.85 }}
+              >
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 px-5 py-2.5" style={{ background: 'rgba(255,255,255,0.35)' }}>
+          <span className="text-[10.5px] font-semibold" style={{ color: '#3A3D42' }}>
+            {t('reader_legend_new')}
+          </span>
+          {[1, 2, 3, 4].map((level) => (
+            <span
+              key={level}
+              className="h-3.5 w-3.5 rounded-full"
+              style={{ background: learningHighlight(level), border: '1px solid rgba(20,24,28,0.12)' }}
+              aria-hidden="true"
+            />
+          ))}
+          <span className="text-[10.5px] font-semibold" style={{ color: '#3A3D42' }}>
+            {t('reader_legend_known')}
           </span>
         </div>
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-2.5 px-1">
         <span className="text-[13px]" style={{ color: COLORS.muted }}>
-          Esta sesión:
+          {t('reader_session_label')}
         </span>
         {sessionWords.length === 0 ? (
           <span className="text-[13px] italic" style={{ color: '#9A9DA4' }}>
-            toca una palabra del texto para empezar
+            {t('reader_session_empty')}
           </span>
         ) : (
           sessionWords.map((chip) => (
@@ -219,9 +266,9 @@ export function InteractiveText({
           const isActive = activeKey === key
           const translation = entry?.translation || translations[lower]
 
-          let decorationColor = 'transparent'
-          if (entry?.status === 'new') decorationColor = COLORS.stateNew
-          else if (entry?.status === 'learning') decorationColor = learningShade(wordLevel(entry.repetitions))
+          let highlight = 'transparent'
+          if (entry?.status === 'new') highlight = COLORS.stateNewSoft
+          else if (entry?.status === 'learning') highlight = learningHighlight(wordLevel(entry.repetitions))
 
           return (
             <span key={key} className="relative" data-word-key={key}>
@@ -230,11 +277,8 @@ export function InteractiveText({
                 onClick={() => handleTap(token, key)}
                 className="cursor-pointer rounded px-0.5"
                 style={{
-                  background: isActive ? accent : 'transparent',
-                  textDecorationLine: decorationColor === 'transparent' ? 'none' : 'underline',
-                  textDecorationColor: decorationColor,
-                  textDecorationThickness: '2.5px',
-                  textUnderlineOffset: '4px',
+                  background: highlight,
+                  boxShadow: isActive ? `0 0 0 2px ${accentStrong}` : 'none',
                   color: COLORS.ink,
                 }}
               >
@@ -250,6 +294,7 @@ export function InteractiveText({
                   onSpeak={speechSupported() ? () => speak(token.text, language) : undefined}
                   onSave={!entry && translation ? () => handleSave(token) : undefined}
                   onMarkKnown={entry?.status !== 'known' && translation ? () => handleMarkKnown(token) : undefined}
+                  onRemove={entry ? () => handleRemove(token, key) : undefined}
                   saving={isPending}
                 />
               )}

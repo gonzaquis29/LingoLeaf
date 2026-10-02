@@ -1,12 +1,17 @@
+'use client'
+
 import type { CSSProperties } from 'react'
 import { CARD_RADIUS } from '@/lib/theme'
+import { useT } from '@/components/i18n/I18nProvider'
 
 export function Skeleton({ style, className = '' }: { style?: CSSProperties; className?: string }) {
   return <div className={`lf-skeleton rounded-lg ${className}`} style={style} />
 }
 
-// Mismo alto (68px) que el Header real, para que no salte el layout cuando lo reemplaza.
+// Mismo alto (68px) y misma estructura que el Header real (logo, navegación, píldoras), para que
+// no salte ni "pierda" elementos mientras carga la página.
 export function HeaderSkeleton() {
+  const t = useT()
   return (
     <div
       className="sticky top-0 z-30 flex h-[68px] items-center justify-between gap-3 px-4 sm:px-8"
@@ -21,9 +26,25 @@ export function HeaderSkeleton() {
           Lingoleaf
         </span>
       </div>
-      <Skeleton style={{ width: 34, height: 34, borderRadius: '50%' }} />
+      <div className="hidden items-center gap-[26px] md:flex">
+        {(['nav_library', 'nav_vocabulary', 'nav_review'] as const).map((key) => (
+          <span key={key} className="text-sm font-semibold" style={{ color: '#14181C' }}>
+            {t(key)}
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center gap-2 sm:gap-3.5">
+        <Skeleton style={{ width: 56, height: 34, borderRadius: 100 }} />
+        <Skeleton style={{ width: 96, height: 34, borderRadius: 100 }} />
+        <Skeleton style={{ width: 34, height: 34, borderRadius: '50%' }} />
+      </div>
     </div>
   )
+}
+
+// Mismo alto mínimo (196px) que el banner real de cada pantalla.
+export function BannerSkeleton() {
+  return <Skeleton className="mb-8 rounded-none" style={{ height: 196, width: '100%' }} />
 }
 
 export function CardSkeleton() {
